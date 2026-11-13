@@ -335,7 +335,6 @@ async function bootInner() {
     if (session) saveSession(null);
     return renderUnlock(problem === 'none' ? 'none' : problem);
   }
-  if (!device().nickname) await askNickname();
   if (session.role === 'teacher' && !session.confirmed) return renderClassPicker(session);
   if (session.role === 'specialist' && !session.elective) return renderElectivePicker(session);
   tick();
