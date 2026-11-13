@@ -192,7 +192,6 @@ function renderUnlock(problem) {
       input,
       h('div', { class: 'keypad', 'aria-label': 'Number pad' }, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', 'OK'].map(key))),
     wait ? h('p', { class: 'banner bad' }, `This device is waiting ${Math.ceil(wait / 60000)} more minutes.`) : null,
-    h('p', { class: 'hint' }, 'Teachers: 4-digit Teacher code · Specialists: 4-digit Specialist code · Owner: 6-digit code'),
     store.mode === 'local' ? h('p', { class: 'hint' }, 'Local test mode — data stays on this computer.') : null));
   input.focus();
 }
