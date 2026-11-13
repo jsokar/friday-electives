@@ -1,0 +1,20 @@
+/* Letter paper, black and white, economical (§13). */
+@page { size: letter; margin: 0.5in; }
+body { background: #fff; color: #000; font-size: 11pt; }
+.topbar, nav.tabs, .localbar, .noprint, #toasts, .helppanel, .skip, .nextstep, .steps, .progressbar, .boardhead .btn, .eltabs { display: none !important; }
+main { max-width: none; padding: 0; }
+.card { box-shadow: none; border: none; padding: 0; }
+.printpage { page-break-after: always; break-after: page; }
+.printpage:last-child { page-break-after: auto; break-after: auto; }
+table { font-size: 10.5pt; }
+th, td { border-bottom: 1px solid #777; padding: 3pt 4pt; }
+th { color: #000; }
+.badge { border: 1px solid #000; color: #000 !important; }
+.avatar { border: 1px solid #999; }
+.columns { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; }
+.columns .col { display: block !important; break-inside: avoid; border: 1px solid #777; }
+.ballots { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.ballot { border: 1px dashed #000 !important; break-inside: avoid; }
+.footer-note { font-size: 8.5pt; color: #333; margin-top: 6pt; }
+.att button { border: 1px solid #777 !important; background: #fff !important; }
+a { color: #000; text-decoration: none; }
