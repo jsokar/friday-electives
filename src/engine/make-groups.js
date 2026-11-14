@@ -149,8 +149,8 @@ export function makeGroups(students, options) {
     result.rankReceived[s.id] = rank;
     const hadChoices = (s.ranking && s.ranking.length) || s.anyFine;
     if (!hadChoices && !s.pinned) result.placedByApp.push(s.id);
-    // §7.7: help only when the student landed on their LAST option and had 3+ options (a different choice could help)
-    if (hadChoices && !s.anyFine && !s.pinned && s.available.length >= 3 && rank === s.available.length) {
+    // §7.7: help when the student got neither of their two choices (and had 3+ options, so another pick could help)
+    if (hadChoices && !s.anyFine && !s.pinned && s.available.length >= 3 && rank > (s.ranking || []).length) {
       result.needsHelp.push(s.id);
     }
   }

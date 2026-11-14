@@ -9,7 +9,7 @@ import { gradeName, periodText, fridaysText, rotationPicker } from './common.js'
 const PERIOD_ORDER = ['5', '4', '3', '1', 'K', '2'];
 const school = () => (db.settings.schoolName ? `${db.settings.schoolName} · ` : '');
 const FOOT = () => h('p', { class: 'footer-note' }, `Student information — do not post publicly; shred when done. Printed ${new Date().toLocaleString()}.`);
-const printBar = (back = '#/reports') => h('div', { class: 'row noprint', style: { marginBottom: '1rem' } }, h('button', { class: 'btn primary', onclick: () => window.print() }, '🖨 Print / Save as PDF'), h('a', { class: 'btn', href: back }, '← All printouts'));
+const printBar = () => h('div', { class: 'row noprint', style: { marginBottom: '1rem' } }, h('button', { class: 'btn primary', onclick: () => window.print() }, '🖨 Print / Save as PDF'), h('button', { class: 'btn', onclick: () => history.back() }, '← Back'));
 const shortName = (s) => `${s.last}, ${s.first}`;
 
 function gradeRoster(main, rot, grade) {

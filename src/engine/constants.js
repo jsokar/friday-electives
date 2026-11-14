@@ -13,6 +13,7 @@ export const GRADE_LABEL = { K: 'Kindergarten', 1: '1st grade', 2: '2nd grade', 
 
 // §7.4 base cost by rank received (1st..4th)
 export const RANK_COST = [0, 10, 25, 60];
+export const MAX_CHOICES = 2; // teachers enter only a 1st and a 2nd choice
 export const MAX_MISSES_COUNTED = 4;
 export const LOOKAHEAD_PENALTY = 15;   // added (before ×1000) when a link would leave the student forced into a crowded elective next time
 export const RECENT_REPEAT_PENALTY = 8; // new cycle: discourage the elective just finished

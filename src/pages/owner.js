@@ -9,7 +9,8 @@ import { gradeName } from './common.js';
 function passcodes(rerender) {
   const row = (role) => {
     const input = h('input', { type: 'password', inputmode: 'numeric', maxlength: CODE_LENGTH[role], autocomplete: 'new-password', 'aria-label': `New ${ROLE_LABEL[role]} code` });
-    return h('tr', {}, h('th', { scope: 'row' }, ROLE_LABEL[role]), h('td', {}, `Changed ${new Date(db.codes[role].changedAt).toLocaleDateString()}`),
+    const changedAt = db.codes?.[role]?.changedAt;
+    return h('tr', {}, h('th', { scope: 'row' }, ROLE_LABEL[role]), h('td', {}, changedAt ? `Changed ${new Date(changedAt).toLocaleDateString()}` : 'Saved on the server'),
       h('td', {}, input), h('td', {}, h('button', { class: 'btn small', onclick: async () => {
         const v = input.value.trim();
         if (!new RegExp(`^\\d{${CODE_LENGTH[role]}}$`).test(v)) return announce(`The ${ROLE_LABEL[role]} code must be ${CODE_LENGTH[role]} digits.`, { kind: 'bad' });
@@ -22,7 +23,7 @@ function passcodes(rerender) {
           return;
         }
         const rec = await makeCodeRecord(v);
-        rec.version = (db.codes[role].version || 1) + 1;
+        rec.version = (db.codes?.[role]?.version || 1) + 1;
         db.codes[role] = rec;
         log('passcode changed', { role });
         changed();
@@ -195,5 +196,10 @@ function backup(rerender) {
 }
 
 export function renderOwner(main, { rerender }) {
-  main.append(h('h1', {}, 'Owner'), dataChecks(), testClock(rerender), passcodes(rerender), students(rerender), classes(rerender), settings(rerender), backup(rerender), historyCard());
+  main.append(h('h1', {}, 'Admin'),
+    h('p', { class: 'muted' }, 'Only your 6-digit code opens this page. Here you manage the passcodes, the student list, class teachers, Friday times and backups.'),
+    h('div', { class: 'row', style: { marginBottom: '1rem' } },
+      h('a', { class: 'btn small', href: '#/reports' }, '🖨 All printouts'),
+      h('a', { class: 'btn small', href: '#/attendance' }, 'Attendance (optional)')),
+    dataChecks(), testClock(rerender), passcodes(rerender), students(rerender), classes(rerender), settings(rerender), backup(rerender), historyCard());
 }

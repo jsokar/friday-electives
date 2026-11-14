@@ -5,7 +5,7 @@ import { getSession } from './auth.js';
 import { cycleState, findRuleBreaks } from './engine/eligibility.js';
 import { makeGroups, fullRanking } from './engine/make-groups.js';
 import { rotationTimetable, isPast, heldFridays, completedFromAttendance, isNoSchool } from './engine/calendar.js';
-import { ELECTIVES, ELECTIVE_INFO, GRADES } from './engine/constants.js';
+import { ELECTIVES, ELECTIVE_INFO, GRADES, MAX_CHOICES } from './engine/constants.js';
 import { newSeed } from './engine/rng.js';
 
 export const timetable = (rot) => rotationTimetable(db.settings, rot);
@@ -96,7 +96,7 @@ export function regStatus(rot, studentId) {
   if (elig.available.length === 1) return 'done'; // only one option: filled in automatically
   if (!r) return 'not_started';
   if (r.anyFine) return 'done';
-  if (r.ranking.length >= Math.min(elig.available.length - 1, 3) || r.ranking.length === elig.available.length) return 'done';
+  if (r.ranking.length >= Math.min(MAX_CHOICES, elig.available.length)) return 'done';
   return r.ranking.length ? 'in_progress' : 'not_started';
 }
 
@@ -107,9 +107,9 @@ export function signupOpen(rot) {
 export function saveRanking(rot, studentId, ranking, { anyFine = false } = {}) {
   if (!signupOpen(rot)) throw new Error('Choices are closed for this rotation.');
   const elig = eligibility(studentId, rot);
-  const clean = ranking.filter((e) => elig.available.includes(e));
-  // The last remaining option fills in by itself.
-  if (clean.length === elig.available.length - 1) clean.push(elig.available.find((e) => !clean.includes(e)));
+  const clean = ranking.filter((e) => elig.available.includes(e)).slice(0, MAX_CHOICES);
+  // With only two electives left, the second fills in by itself.
+  if (elig.available.length === 2 && clean.length === 1) clean.push(elig.available.find((e) => !clean.includes(e)));
   (db.registrations[rot.id] ||= {})[studentId] = { ranking: clean, anyFine, at: now().toISOString(), by: who() };
   log('choices', { rotation: rot.id, student: studentId, ranking: clean.join('>'), anyFine });
   changed();

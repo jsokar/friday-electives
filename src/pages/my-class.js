@@ -2,7 +2,7 @@
 import { h, clear, photo, electiveBadge, info, dialog, field, announce, emptyState, select } from '../ui.js';
 import { db, store, classById, studentsInClass, rotationById, log, studentById } from '../data.js';
 import { timetable, stage, eligibility, registration, regStatus, saveRanking, signupOpen, inRotation, answerHelp, requestChange, past } from '../domain.js';
-import { ELECTIVES, ELECTIVE_INFO } from '../engine/constants.js';
+import { ELECTIVES, ELECTIVE_INFO, MAX_CHOICES } from '../engine/constants.js';
 import { niceDate } from '../engine/calendar.js';
 import { when, rotTitle, teacherRotation, rotationPicker, periodText, gradeName, rotationsForClass } from './common.js';
 
@@ -34,8 +34,10 @@ function choiceCard(s, rot, refresh) {
     let next = [...ranking];
     if (reg?.anyFine) next = [];
     if (next.includes(el)) next = next.filter((x) => x !== el);
-    else next.push(el);
-    if (next.length === elig.available.length) next = next.slice(0, -1).concat(next.slice(-1)); // keep full order
+    else if (next.length >= MAX_CHOICES) {
+      announce(`${s.first} already has a 1st and a 2nd choice. Tap one of them to change it.`);
+      return;
+    } else next.push(el);
     saveRanking(rot, s.id, next);
     refresh(s.id, `choice-${s.id}-${el}`);
   };
@@ -43,10 +45,10 @@ function choiceCard(s, rot, refresh) {
     ? [h('div', { class: 'locked' }, '🔒 Only one elective left: ', electiveBadge(elig.available[0]), ' — filled in automatically.')]
     : elig.available.map((el) => {
       const idx = ranking.indexOf(el);
-      const rankText = idx >= 0 ? `${idx + 1}` : '';
+      const rankText = idx === 0 ? '1st' : idx === 1 ? '2nd' : '';
       return h('button', {
         type: 'button', class: 'choice', id: `choice-${s.id}-${el}`, 'aria-pressed': idx >= 0 ? 'true' : 'false', disabled: !open,
-        'aria-label': `${s.name}, ${ELECTIVE_INFO[el].label}${idx >= 0 ? `, choice ${idx + 1}` : ', not chosen'}`,
+        'aria-label': `${s.name}, ${ELECTIVE_INFO[el].label}${idx === 0 ? ', 1st choice' : idx === 1 ? ', 2nd choice' : ', not chosen'}`,
         onclick: () => tap(el),
       }, h('span', { class: 'rank', 'aria-hidden': 'true' }, rankText || '·'), h('span', { 'aria-hidden': 'true' }, ELECTIVE_INFO[el].icon), ELECTIVE_INFO[el].label);
     });

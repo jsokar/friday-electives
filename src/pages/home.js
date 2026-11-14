@@ -36,7 +36,6 @@ function teacherHome(session) {
 
 function specialistSteps(session) {
   const out = [];
-  if (isFridayToday()) out.push(nextStep('It’s Friday — take attendance for each period.', '#/attendance', 'Take attendance'));
   const toApprove = [];
   for (const r of db.rotations) for (const g of GRADES) {
     if (stage(r, g) !== 'review') continue;

@@ -22,13 +22,13 @@ const LAST_CLASS = 'fe-last-class';
 
 const ROUTES = {
   home: { label: 'Home', roles: ['teacher', 'specialist', 'owner'], render: renderHome, help: 'home' },
-  class: { label: 'My Class', roles: ['teacher', 'specialist', 'owner'], render: renderMyClass, help: 'myclass' },
-  ballots: { label: 'Ballots', roles: ['teacher', 'specialist', 'owner'], render: renderBallots, help: 'ballots', hidden: true },
+  class: { label: 'My Class', roles: ['teacher', 'owner'], render: renderMyClass, help: 'myclass' },
+  ballots: { label: 'Ballots', roles: ['teacher', 'owner'], render: renderBallots, help: 'ballots', hidden: true },
   board: { label: 'Specials Board', roles: ['specialist', 'owner'], render: renderBoard, help: 'board' },
-  attendance: { label: 'Attendance', roles: ['specialist', 'owner'], render: renderAttendance, help: 'attendance' },
-  schedule: { label: 'Schedule', roles: ['teacher', 'specialist', 'owner'], render: renderSchedule, help: 'schedule' },
-  reports: { label: 'Print', roles: ['specialist', 'owner'], render: renderReports, help: 'board' },
-  owner: { label: 'Owner', roles: ['owner'], render: renderOwner, help: 'owner' },
+  attendance: { label: 'Attendance', roles: ['owner'], render: renderAttendance, help: 'attendance', hidden: true },
+  schedule: { label: 'Schedule', roles: ['owner'], render: renderSchedule, help: 'schedule' },
+  reports: { label: 'Print', roles: ['specialist', 'owner'], render: renderReports, help: 'board', hidden: true },
+  owner: { label: 'Admin', roles: ['owner'], render: renderOwner, help: 'owner' },
 };
 
 export function route() {
@@ -285,7 +285,7 @@ function renderLayout(session) {
   const unread = db.inbox.filter((m) => !m.read && (m.to === session.elective || (session.role === 'owner' && m.to === 'owner'))).length;
   const whoText = session.role === 'teacher'
     ? `${classById(session.classId)?.code} · ${classById(session.classId)?.teacher || 'Teacher TBD'}`
-    : session.role === 'specialist' ? `${ELECTIVE_INFO[session.elective].label} specialist` : 'Owner';
+    : session.role === 'specialist' ? `${ELECTIVE_INFO[session.elective].label} specialist` : 'Admin';
   const top = h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#/home', style: { textDecoration: 'none', color: 'inherit' } }, h('span', { class: 'dot', 'aria-hidden': 'true' }), 'Friday Electives'),
     h('span', { class: 'who' }, whoText,

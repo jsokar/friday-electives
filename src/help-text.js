@@ -11,9 +11,9 @@ export const HELP = {
   myclass: {
     title: 'My Class — entering choices',
     steps: [
-      'Step 1: Print picture ballots and let each child number their choices 1, 2, 3.',
-      'Step 2: For each child, tap the electives in the child’s order. The first tap is 1st choice, the next is 2nd, and so on. Tap again to undo.',
-      'The last option fills in by itself. Everything saves on every tap — there is no Submit button.',
+      'Step 1: Print picture ballots and let each child mark a 1 (favorite) and a 2 (next favorite).',
+      'Step 2: For each child, tap their 1st choice, then their 2nd choice. Tap a choice again to undo it.',
+      'Everything saves on every tap — there is no Submit button.',
       'Child absent or doesn’t mind? Tap “Absent / any is fine”. The app will choose fairly for them.',
       'Step 3: After the groups are published, see “Where does everyone go on Friday?” and print the line-up sheet.',
     ],
@@ -26,7 +26,7 @@ export const HELP = {
     title: 'Picture ballots',
     steps: [
       'Each slip shows only the electives that child can still choose.',
-      'Children write 1 next to their favourite, 2 next to their next favourite, and so on.',
+      'Children write 1 under their favorite and 2 under their next favorite.',
       'Print in black and white. Cut along the dashed lines.',
     ],
   },

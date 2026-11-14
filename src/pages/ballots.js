@@ -37,7 +37,7 @@ export function renderBallots(main, { session, params }) {
         h('button', { class: 'btn', 'aria-pressed': 'true', onclick: (e) => { withPhotos = !withPhotos; e.target.setAttribute('aria-pressed', String(withPhotos)); e.target.textContent = withPhotos ? 'Photos: on' : 'Photos: off'; draw(); } }, 'Photos: on'),
         h('a', { class: 'btn', href: '#/class' }, '← Back to my class')),
       h('div', { class: 'card' }, h('h2', {}, 'What to tell the children (K–2 script)'), h('ul', {}, HELP.myclass.kids.map((k) => h('li', {}, k))),
-        h('p', {}, 'Say: “Put a 1 in the box under the one you like most, then 2, then 3.”'))),
+        h('p', {}, 'Say: “Put a 1 under the one you like most, and a 2 under your next favorite.”'))),
     h('h2', { class: 'print-only', style: { display: 'none' } }, `${c.code} — ${rotTitle(rot)}`),
     sheet,
     h('p', { class: 'footer-note' }, 'Student information — do not post publicly; shred when done.'));

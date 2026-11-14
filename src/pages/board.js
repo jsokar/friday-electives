@@ -10,7 +10,7 @@ import { when, rotationPicker, gradeName, periodText, fridaysText } from './comm
 import { niceDate } from '../engine/calendar.js';
 
 const REASONS = ['Balance', 'Schedule', 'Teacher request', 'Correcting a mistake', 'Other'];
-const RANK = ['', '1st', '2nd', '3rd', '4th'];
+const RANK = ['', '1st choice', '2nd choice', 'not chosen', 'not chosen'];
 
 function spreadView(sp) {
   if (sp <= 2) return h('span', { class: 'spread-ok' }, `Spread ${sp} ✓ Balanced`);
@@ -84,7 +84,8 @@ export function renderBoard(main, { session, params, rerender }) {
     h('h1', { style: { margin: 0 } }, 'Specials Board'),
     h('span', { class: 'spacer' }),
     rotationPicker(rot, (id) => goTo(id, grade)),
-    h('a', { class: 'btn small', href: '#/board/inbox' }, '📬 Inbox')));
+    h('a', { class: 'btn small', href: '#/board/inbox' }, '📬 Inbox'),
+    session.role === 'specialist' ? h('a', { class: 'btn small', href: `#/reports/packet/${rot.id}/${session.elective}` }, '🖨 My Friday packet') : null));
   main.append(h('div', { class: 'row noprint', role: 'tablist', 'aria-label': 'Grade', style: { margin: '0.75rem 0' } },
     GRADES.map((g) => h('button', { class: `btn${g === grade ? ' primary' : ''}`, role: 'tab', 'aria-selected': g === grade ? 'true' : 'false', onclick: () => goTo(rot.id, g) }, gradeName(g)))));
 
@@ -154,7 +155,8 @@ export function renderBoard(main, { session, params, rerender }) {
       rerender();
     } }, 'Approve all (owner)') : null,
     gs.publishedAt ? h('span', { class: 'status done' }, `✓ Published ${new Date(gs.publishedAt).toLocaleDateString()}`) : null,
-    h('a', { class: 'btn small', href: `#/reports/grade/${rot.id}/${grade}` }, '🖨 Print'));
+    h('a', { class: 'btn small', href: `#/reports/grade/${rot.id}/${grade}` }, `🖨 Print ${gradeName(grade)}`),
+    my ? null : h('a', { class: 'btn small', href: `#/reports/index/${rot.id}` }, '🖨 All printouts'));
   main.append(head);
 
   if (late.length) {

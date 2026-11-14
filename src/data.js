@@ -10,6 +10,9 @@ export const SCHEMA_VERSION = 1;
 export let store = localStore;
 
 async function chooseStore() {
+  // Developer testing on this Mac only: ?local forces local test mode (data stays in this browser).
+  const isLocalHost = ['localhost', '127.0.0.1'].includes(location.hostname);
+  if (isLocalHost && new URLSearchParams(location.search).has('local')) return;
   try {
     const { CLOUD_CONFIG } = await import('../data/cloud-config.js');
     if (CLOUD_CONFIG?.url && CLOUD_CONFIG?.publishableKey) {
