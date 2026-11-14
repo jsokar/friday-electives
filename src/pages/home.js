@@ -23,13 +23,13 @@ function teacherHome(session) {
   if (st === 'signup') {
     const left = kids.filter((s) => regStatus(rot, s.id) !== 'done').length;
     if (left) return nextStep(`Enter choices for ${left} student${left === 1 ? '' : 's'} in ${c.code} — closes ${when(t.choicesClose)}. After that, the app will choose for them.`, '#/class', 'Enter choices');
-    return nextStep(`All choices are entered for ${rotTitle(rot)}. You can still change them until ${when(t.choicesClose)}.`, '#/class', 'Review choices', true);
+    return nextStep(`✓ All choices entered — waiting for approval. The app makes the groups after ${when(t.choicesClose)}, then the specialists approve them by ${when(t.publishBy)}. You can still change choices until the first date.`, '#/class', 'Review choices', true);
   }
-  if (st === 'closed') return nextStep(`Choices are closed. Groups are being made for ${rotTitle(rot)}.`, null, null, true);
+  if (st === 'closed') return nextStep(`Waiting for approval — choices are closed and the groups are being made for ${rotTitle(rot)}.`, null, null, true);
   if (st === 'review') {
     const help = kids.filter((s) => db.assignments[rot.id]?.[s.id]?.needsHelp).length;
     if (help) return nextStep(`Choose a new elective for ${help} student${help === 1 ? '' : 's'} — due ${when(t.helpDue)}.`, '#/class', 'Help now');
-    return nextStep(`Specialists are checking the groups. They will be published by ${when(t.publishBy)}.`, '#/class', 'See my class', true);
+    return nextStep(`Waiting for approval — the specialists are checking the groups. They will be published by ${when(t.publishBy)}.`, '#/class', 'See my class', true);
   }
   return nextStep(`Groups are ready for ${rotTitle(rot)}. Your grade goes Fridays ${periodText(c.grade)}.`, '#/class/where', 'Where does everyone go?');
 }

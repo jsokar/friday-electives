@@ -165,7 +165,7 @@ export function renderMyClass(main, { session, params, rerender }) {
       const d = done();
       const nextMissing = inRot.find((s) => regStatus(rot, s.id) !== 'done');
       bar.append(h('strong', {}, `${d} of ${inRot.length} done`), h('span', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: { width: `${(100 * d) / inRot.length}%` } })),
-        nextMissing ? h('button', { class: 'btn small', onclick: () => document.getElementById(`card-${nextMissing.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 'Next missing ▸') : h('span', { class: 'status done' }, '✓ Everyone done'),
+        nextMissing ? h('button', { class: 'btn small', onclick: () => document.getElementById(`card-${nextMissing.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 'Next missing ▸') : h('span', { class: 'status done' }, '✓ Everyone done — waiting for approval'),
         h('span', { class: 'hint' }, `Choices close ${when(t.choicesClose)}`));
     };
     const warn = h('div', { class: 'banner warn', role: 'status' });
@@ -193,11 +193,11 @@ export function renderMyClass(main, { session, params, rerender }) {
     };
     for (const s of inRot) list.append(choiceCard(s, rot, refresh));
   } else if (st === 'closed') {
-    main.append(h('div', { class: 'banner' }, 'Choices are closed. The groups are being made — check back after ', when(t.groupsMade), '.'));
+    main.append(h('div', { class: 'banner' }, 'Waiting for approval. Choices are closed and the groups are being made — check back after ', when(t.groupsMade), '.'));
   } else {
     const help = inRot.filter((s) => db.assignments[rot.id]?.[s.id]?.needsHelp).length;
     if (help && !past(t.helpDue)) main.append(h('div', { class: 'banner bad' }, `${help} student${help === 1 ? '' : 's'} need${help === 1 ? 's' : ''} your help — due ${when(t.helpDue)}.`));
-    if (!rot.grades[c.grade].publishedAt) main.append(h('div', { class: 'banner' }, `Specialists are checking the groups. Published by ${when(t.publishBy)}.`));
+    if (!rot.grades[c.grade].publishedAt) main.append(h('div', { class: 'banner' }, `Waiting for approval — the specialists are checking the groups. Published by ${when(t.publishBy)}. Until then, the groups below may still change.`));
     const refresh = () => rerender();
     for (const s of inRot) list.append(resultCard(s, rot, refresh));
   }
