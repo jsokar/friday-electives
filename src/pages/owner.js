@@ -228,10 +228,20 @@ function rosterUpdate(rerender) {
     status.textContent = 'Saving the student list…';
     try {
       await saveNow();
+      if (store.client) {
+        // Make sure the server really has the new list before going on.
+        const { data, error } = await store.client.from('docs').select('data').eq('key', 'students').single();
+        if (error || !data || data.data.length !== db.students.length) throw new Error('the student list did not reach the server');
+      }
       if (store.uploadPhotos) {
         const res = await store.uploadPhotos(db.students.filter((x) => x.active), '../seed/', (n, total) => (status.textContent = `Uploading photos… ${n} of ${total}`));
-        status.textContent = `✓ Done: ${s.added.length} new students, ${s.moved.length} class change(s), photos updated${res.failed.length ? ` (${res.failed.length} photos failed — press again to retry)` : ''}. Reloading…`;
-        setTimeout(() => location.reload(), 1500);
+        if (res.failed.length) {
+          status.textContent = `The student list was saved, but ${res.failed.length} photos could not be uploaded. Press the button again to retry.`;
+          btn.disabled = false;
+          return;
+        }
+        status.textContent = `✓ Done: ${s.added.length} new students, ${s.moved.length} class change(s), all photos updated. Reloading…`;
+        setTimeout(() => location.reload(), 2500);
       } else {
         status.textContent = `✓ Done: ${s.added.length} new students, ${s.moved.length} class change(s).`;
         rerender();
