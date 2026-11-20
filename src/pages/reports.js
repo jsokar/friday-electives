@@ -61,13 +61,12 @@ function lineup(main, rot, c) {
 
 function statusReport(main, rot) {
   main.append(printBar(), h('h1', {}, `Sign-up status — ${rot.id} (${fridaysText(rot)})`),
-    h('table', {}, h('thead', {}, h('tr', {}, ['Class', 'Teacher', 'Done', 'In progress', 'Not started', 'Needs help'].map((x) => h('th', {}, x)))),
+    h('table', {}, h('thead', {}, h('tr', {}, ['Class', 'Teacher', 'Done', 'In progress', 'Not started'].map((x) => h('th', {}, x)))),
       h('tbody', {}, db.classes.filter((c) => rot.tracks.includes(c.track)).map((c) => {
         const kids = studentsInClass(c.id);
         const n = { done: 0, in_progress: 0, not_started: 0 };
         for (const s of kids) n[regStatus(rot, s.id)]++;
-        const help = kids.filter((s) => db.assignments[rot.id]?.[s.id]?.needsHelp).length;
-        return h('tr', {}, h('td', {}, c.code), h('td', {}, c.teacher || 'TBD'), h('td', {}, n.done), h('td', {}, n.in_progress), h('td', {}, n.not_started), h('td', {}, help));
+        return h('tr', {}, h('td', {}, c.code), h('td', {}, c.teacher || 'TBD'), h('td', {}, n.done), h('td', {}, n.in_progress), h('td', {}, n.not_started));
       }))), FOOT());
 }
 

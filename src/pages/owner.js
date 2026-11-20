@@ -124,8 +124,7 @@ function testClock(rerender) {
     h('div', { class: 'row' }, d, t,
       h('button', { class: 'btn primary small', onclick: () => { db.testToday = { date: d.value, time: t.value }; changed(); rerender(); } }, 'Set'),
       h('button', { class: 'btn small', onclick: () => { db.testToday = null; changed(); rerender(); } }, 'Use real time')),
-    h('p', {}, `Jump to a step of ${rot.id}: `, jump('Sign-up open', { date: tt.signupOpens, time: '09:00' }), ' ', jump('After choices close', { date: tt.groupsMade.date, time: '08:00' }), ' ',
-      jump('After help due', { date: tt.helpDue.date, time: '13:00' }), ' ', jump('After deadline', { date: tt.publishBy.date, time: '15:30' }), ' ', jump('First Friday', { date: rot.fridays[0], time: '09:30' }), ' ', jump('After lock', { date: tt.completionLock.date, time: '15:30' })));
+    h('p', {}, `Jump to a step of ${rot.id}: `, jump('Sign-up open', { date: tt.signupOpens, time: '09:00' }), ' ', jump('Just after choices close', { date: tt.choicesClose.date, time: '15:05' }), ' ', jump('After deadline', { date: tt.publishBy.date, time: '15:30' }), ' ', jump('First Friday', { date: rot.fridays[0], time: '09:30' }), ' ', jump('After lock', { date: tt.completionLock.date, time: '15:30' })));
 }
 
 function dataChecks() {

@@ -72,16 +72,14 @@ export function rotationTimetable(config, rotation) {
   while (weekday(P) !== 5 || isNoSchool(config, P)) P = addDays(P, -1);
   const t = config.timetable;
   const closeDay = schoolDayOnOrBefore(config, addDays(P, -4)); // Monday before P
-  const makeDay = schoolDayOnOrBefore(config, addDays(P, -3)); // Tuesday
-  const helpDay = schoolDayOnOrBefore(config, addDays(P, -2)); // Wednesday
   const last = rotation.fridays[rotation.fridays.length - 1];
   let lock = addDays(last, 3);
   while (isNoSchool(config, lock)) lock = addDays(lock, 1);
   return {
     signupOpens: schoolDayOnOrBefore(config, addDays(closeDay, -14)),
     choicesClose: { date: closeDay, time: t.closeTime },
-    groupsMade: { date: makeDay, time: '07:00' },
-    helpDue: { date: helpDay, time: t.helpDueTime },
+    // The app makes the final decision right at the deadline (the server checks every few minutes).
+    groupsMade: { date: closeDay, time: t.closeTime },
     publishBy: { date: P, time: t.publishTime },
     completionLock: { date: lock, time: '15:00' },
   };

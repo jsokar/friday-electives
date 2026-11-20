@@ -1,15 +1,17 @@
 // School rules on top of the database: eligibility, sign-ups, making groups, moves, approvals,
 // attendance, completion and the automatic deadline steps (§4, §7, §8).
-import { db, log, notify, now, todayISO, nowTime, studentById, activeStudents, studentTrack, changed, who } from './data.js';
+import { db, log, notify, now, todayISO, nowTime, studentById, changed, who, store } from './data.js';
 import { getSession } from './auth.js';
-import { cycleState, findRuleBreaks } from './engine/eligibility.js';
-import { makeGroups, fullRanking } from './engine/make-groups.js';
-import { rotationTimetable, isPast, heldFridays, completedFromAttendance, isNoSchool } from './engine/calendar.js';
+import { fullRanking } from './engine/make-groups.js';
+import { rotationTimetable, isPast } from './engine/calendar.js';
+import * as R from './engine/rules.js';
 import { ELECTIVES, ELECTIVE_INFO, GRADES, MAX_CHOICES } from './engine/constants.js';
 import { newSeed } from './engine/rng.js';
 
 export const timetable = (rot) => rotationTimetable(db.settings, rot);
 export const past = (point) => isPast(point, todayISO(), nowTime());
+/** Context for the shared rules (school-local date/time, who is acting). */
+const ctx = () => ({ date: todayISO(), time: nowTime(), nowIso: now().toISOString(), who: who() });
 
 /** The rotation whose sign-up / review is current: the first one not yet finished for this grade. */
 export function currentRotation(grade = null) {
@@ -54,36 +56,12 @@ export const STAGE_LABEL = {
 };
 
 /** Is this student's class in school for the rotation? */
-export const inRotation = (s, rot) => rot.tracks.includes(studentTrack(s));
+export const inRotation = (s, rot) => R.ruleInRotation(db, s, rot);
 
 /** History for one student before (and including the provisional current) rotation `rot`. */
-export function historyFor(studentId, beforeRot, { includeCurrent = false } = {}) {
-  const out = [];
-  for (const r of db.rotations) {
-    if (r.number > beforeRot.number || (!includeCurrent && r.number === beforeRot.number)) continue;
-    const a = db.assignments[r.id]?.[studentId];
-    if (!a) continue;
-    out.push({ order: r.number, elective: a.elective, status: a.completion === 'completed' ? 'completed' : a.completion === 'not_completed' ? 'not_completed' : 'pending', rotation: r.id });
-  }
-  // Optional known past electives entered by specialists before the app (D5)
-  const s = studentById(studentId);
-  for (const p of s?.pastElectives || []) out.push({ order: -1, elective: p, status: 'completed' });
-  return out;
-}
-
-export function eligibility(studentId, rot) {
-  return cycleState(historyFor(studentId, rot));
-}
-
-export function missesThisYear(studentId, beforeRot) {
-  let m = 0;
-  for (const r of db.rotations) {
-    if (r.number >= beforeRot.number) continue;
-    const a = db.assignments[r.id]?.[studentId];
-    if (a && a.hadChoices && a.availableCount > 1 && a.rank > 1) m++;
-  }
-  return m;
-}
+export const historyFor = (studentId, beforeRot, opts = {}) => R.ruleHistoryFor(db, studentId, beforeRot, opts);
+export const eligibility = (studentId, rot) => R.ruleEligibility(db, studentId, rot);
+export const missesThisYear = (studentId, beforeRot) => R.ruleMisses(db, studentId, beforeRot);
 
 // ---------- sign-ups ----------
 export function registration(rot, studentId) {
@@ -117,77 +95,17 @@ export function saveRanking(rot, studentId, ranking, { anyFine = false } = {}) {
 
 
 // ---------- making groups ----------
-export function cohort(rot, grade) {
-  return activeStudents().filter((s) => s.grade === grade && inRotation(s, rot));
-}
-
-function nextRotation(rot) {
-  return db.rotations.filter((r) => r.number > rot.number).sort((a, b) => a.number - b.number)[0] || null;
-}
-
-export function buildInputs(rot, grade) {
-  const assigned = db.assignments[rot.id] || {};
-  return cohort(rot, grade).map((s) => {
-    const elig = eligibility(s.id, rot);
-    const reg = registration(rot, s.id);
-    let ranking = reg?.ranking || [];
-    if (reg?.helpAnswer) ranking = [reg.helpAnswer, ...ranking.filter((e) => e !== reg.helpAnswer)];
-    return {
-      id: s.id,
-      group: studentTrack(s),
-      available: elig.available,
-      ranking,
-      anyFine: !!reg?.anyFine,
-      misses: missesThisYear(s.id, rot),
-      pinned: assigned[s.id]?.pinned ? assigned[s.id].elective : undefined,
-      lastDone: elig.lastDone,
-      newCycleJustStarted: elig.newCycleJustStarted,
-    };
-  });
-}
+export const cohort = (rot, grade) => R.ruleCohort(db, rot, grade);
+export const buildInputs = (rot, grade) => R.ruleBuildInputs(db, rot, grade);
 
 /** Run the engine for one grade and (by default) accept the result as the current groups. */
 export function makeGroupsFor(rot, grade, { by = 'System', accept = true, spreads } = {}) {
-  const gs = rot.grades[grade];
-  if (gs.publishedAt) throw new Error('This grade is already published. Use “Move to…” for changes.');
-  const inputs = buildInputs(rot, grade);
-  const next = nextRotation(rot);
-  const result = makeGroups(inputs, {
-    seed: `${rot.seed}|${grade}`,
-    lookahead: !!next,
-    nextCohortSize: next ? cohort(next, grade).length : undefined,
-    ...(spreads ? { spreads } : {}),
-  });
-  const run = { id: `run_${Math.random().toString(36).slice(2, 9)}`, rotationId: rot.id, grade, at: now().toISOString(), by, result, inputs: inputs.length };
-  db.runs.push(run);
-  log('make groups', { rotation: rot.id, grade, ok: result.ok, spread: result.spread, by });
-  if (accept && result.ok) acceptRun(rot, grade, run, inputs);
+  const run = R.ruleRunGroups(db, ctx(), rot, grade, { by, accept, spreads });
   changed();
   return run;
 }
 
-export function acceptRun(rot, grade, run, inputs = buildInputs(rot, grade)) {
-  const a = (db.assignments[rot.id] ||= {});
-  for (const id of Object.keys(a)) if (studentById(id)?.grade === grade && !inputs.some((i) => i.id === id)) delete a[id];
-  for (const inp of inputs) {
-    const prev = a[inp.id];
-    a[inp.id] = {
-      elective: run.result.assignment[inp.id],
-      rank: run.result.rankReceived[inp.id],
-      source: inp.pinned ? prev?.source || 'specialist' : 'auto',
-      pinned: !!inp.pinned,
-      placedByApp: run.result.placedByApp.includes(inp.id),
-      needsHelp: run.result.needsHelp.includes(inp.id) && !registration(rot, inp.id)?.helpAnswer,
-      hadChoices: !!(inp.ranking.length || inp.anyFine),
-      availableCount: inp.available.length,
-      completion: prev?.completion || 'pending',
-    };
-  }
-  const gs = rot.grades[grade];
-  gs.runId = run.id;
-  gs.groupsAt = gs.groupsAt || now().toISOString();
-  gs.approvals = {}; // new groups need fresh approvals
-}
+export const acceptRun = (rot, grade, run, inputs = buildInputs(rot, grade)) => R.ruleAcceptRun(db, ctx(), rot, grade, run, inputs);
 
 export function groupsOf(rot, grade) {
   const a = db.assignments[rot.id] || {};
@@ -258,23 +176,11 @@ export function approve(rot, grade, elective, by) {
   changed();
 }
 
-export function maybePublish(rot, grade) {
-  const gs = rot.grades[grade];
-  if (!gs.publishedAt && ELECTIVES.every((e) => gs.approvals[e])) {
-    gs.publishedAt = now().toISOString();
-    log('publish', { rotation: rot.id, grade });
-    notify('owner', `${rot.id} ${grade === 'K' ? 'Kindergarten' : 'Grade ' + grade} published.`);
-  }
-}
+export const maybePublish = (rot, grade) => R.ruleMaybePublish(db, ctx(), rot, grade);
 
 // ---------- attendance / completion ----------
-export function cancelledFor(date, grade, elective) {
-  return db.cancelled.some((c) => c.date === date && (!c.grade || c.grade === grade) && (!c.elective || c.elective === elective));
-}
-
-export function heldFor(rot, grade, elective) {
-  return rot.fridays.filter((d) => !cancelledFor(d, grade, elective) && !isNoSchool(db.settings, d));
-}
+export const cancelledFor = (date, grade, elective) => R.ruleCancelledFor(db, date, grade, elective);
+export const heldFor = (rot, grade, elective) => R.ruleHeldFor(db, rot, grade, elective);
 
 export function setAttendance(rot, date, studentId, value) {
   const day = ((db.attendance[rot.id] ||= {})[date] ||= {});
@@ -283,86 +189,23 @@ export function setAttendance(rot, date, studentId, value) {
   changed();
 }
 
-export function attendanceOf(rot, date, studentId) {
-  return db.attendance[rot.id]?.[date]?.[studentId] || 'present';
-}
+export const attendanceOf = (rot, date, studentId) => R.ruleAttendanceOf(db, rot, date, studentId);
+export const computeCompletion = (rot, studentId) => R.ruleComputeCompletion(db, rot, studentId, todayISO());
 
-export function computeCompletion(rot, studentId) {
-  const a = db.assignments[rot.id]?.[studentId];
-  if (!a) return null;
-  if (a.completionOverride) return a.completionOverride;
-  const s = studentById(studentId);
-  const held = heldFor(rot, s.grade, a.elective).filter((d) => d <= todayISO());
-  let attended = 0;
-  let excused = 0;
-  for (const d of held) {
-    const v = attendanceOf(rot, d, studentId);
-    if (v === 'present') attended++;
-    else if (v === 'excused') excused++;
-  }
-  return completedFromAttendance(held.length, attended, excused) ? 'completed' : 'not_completed';
-}
-
-export function lockCompletion(rot, grade, by = 'System') {
-  const gs = rot.grades[grade];
-  const breaks = [];
-  for (const s of cohort(rot, grade)) {
-    const a = db.assignments[rot.id]?.[s.id];
-    if (!a) continue;
-    a.completion = computeCompletion(rot, s.id);
-    if (a.completion === 'not_completed') {
-      const later = findRuleBreaks(historyFor(s.id, { number: 999 }, { includeCurrent: true }));
-      for (const b of later) breaks.push({ student: s.name, rotation: b.rotation, elective: b.elective });
-    }
-  }
-  gs.completionLockedAt = now().toISOString();
-  log('completion locked', { rotation: rot.id, grade, by });
-  for (const b of breaks) notify(ELECTIVES.includes(b.elective) ? b.elective : 'owner', `Check ${b.student}: ${ELECTIVE_INFO[b.elective]?.label} in ${b.rotation} would now repeat (earlier rotation not completed).`);
+export function lockCompletion(rot, grade) {
+  const breaks = R.ruleLockCompletion(db, ctx(), rot, grade);
   changed();
   return breaks;
 }
 
-// ---------- automatic deadline steps (run on every load / minute) ----------
+// ---------- automatic deadline steps ----------
+// In cloud mode the SERVER does these on schedule (supabase/functions/scheduler), so browsers never do.
+// In local test mode there is no server, so the browser runs the same shared rules.
 export function tick() {
-  let did = false;
-  for (const rot of db.rotations) {
-    const t = timetable(rot);
-    for (const grade of GRADES) {
-      const gs = rot.grades[grade];
-      if (!cohort(rot, grade).length) continue;
-      if (!gs.runId && past(t.groupsMade)) {
-        makeGroupsFor(rot, grade, { by: 'System (Tuesday)' });
-        did = true;
-      }
-      if (gs.runId && !gs.helpRerunAt && !gs.publishedAt && past(t.helpDue)) {
-        const anyAnswers = Object.values(db.registrations[rot.id] || {}).some((r) => r.helpAnswer);
-        if (anyAnswers) makeGroupsFor(rot, grade, { by: 'System (help answers)' });
-        for (const a of Object.values(db.assignments[rot.id] || {})) a.needsHelp = false;
-        gs.helpRerunAt = now().toISOString();
-        did = true;
-      }
-      if (gs.runId && !gs.publishedAt && past(t.publishBy)) {
-        for (const e of ELECTIVES) if (!gs.approvals[e]) gs.approvals[e] = { by: 'Owner (deadline)', at: now().toISOString() };
-        maybePublish(rot, grade);
-        did = true;
-      }
-      if (gs.publishedAt && !gs.completionLockedAt && past(t.completionLock)) {
-        lockCompletion(rot, grade);
-        did = true;
-      }
-    }
-  }
-  if (did) changed();
-  return did;
-}
-
-export function answerHelp(rot, studentId, elective) {
-  const r = ((db.registrations[rot.id] ||= {})[studentId] ||= { ranking: [], anyFine: false });
-  r.helpAnswer = elective;
-  const a = db.assignments[rot.id]?.[studentId];
-  if (a) a.needsHelp = false;
-  log('help answer', { rotation: rot.id, student: studentId, elective });
-  changed();
+  if (store.mode !== 'local') return false;
+  const r = R.ruleScheduledSteps(db, ctx());
+  if (r.changed) changed();
+  return r.changed;
 }
 
 export function requestChange(classId, studentId, text) {

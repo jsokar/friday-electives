@@ -42,9 +42,7 @@ export function deadlinesList(rot) {
   const item = (label, p) => h('li', { class: past(p) ? 'muted' : '' }, h('strong', {}, `${label}: `), when(p), past(p) ? ' (done)' : '');
   return h('ul', {},
     item('Sign-up opens', { date: t.signupOpens, time: '07:00' }),
-    item('Choices close', t.choicesClose),
-    item('Groups made', t.groupsMade),
-    item('Help answers due', t.helpDue),
+    item('Choices close — the app decides', t.choicesClose),
     item('Published by', t.publishBy),
     item('Completion locked', t.completionLock));
 }

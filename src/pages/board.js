@@ -99,7 +99,7 @@ export function renderBoard(main, { session, params, rerender }) {
     const lastRun = [...db.runs].reverse().find((r) => r.rotationId === rot.id && r.grade === grade);
     main.append(h('div', { class: 'card' },
       h('h2', {}, 'Groups not made yet'),
-      h('p', {}, `They are made automatically at ${when(t.groupsMade)}. You can make them now to preview — teachers can still change choices until ${when(t.choicesClose)}.`),
+      h('p', {}, `The app makes them automatically when choices close (${when(t.choicesClose)}) — nobody needs to press anything. You can make a preview now; the app still makes the final groups at the deadline with the latest choices.`),
       h('button', { class: 'btn primary', onclick: () => {
         const run = makeGroupsFor(rot, grade, { by: `${session.role === 'specialist' ? ELECTIVE_INFO[session.elective].label + ' specialist' : 'Owner'}` });
         announce(run.result.ok ? 'Groups made.' : 'No balanced split found — see the reasons.');
@@ -186,7 +186,7 @@ export function renderBoard(main, { session, params, rerender }) {
         h('h2', {}, electiveBadge(e), h('span', {}, `${groups[e].length}`)),
         h('ul', {}, list.map((s) => {
           const a = assigned[s.id];
-          const flags = [a.pinned ? '📌' : '', a.placedByApp ? '🤖' : '', a.needsHelp ? '!' : '', a.rank >= 4 ? '⚠' : ''].join('');
+          const flags = [a.pinned ? '📌' : '', a.placedByApp ? '🤖' : '', a.rank >= 3 && a.hadChoices ? '⚠' : ''].join('');
           const btn = h('button', { draggable: 'true', 'aria-label': `${s.name}, ${classById(s.classId).code}, got ${RANK[a.rank] || '—'} choice${a.pinned ? ', moved by a specialist' : ''}${a.placedByApp ? ', placed by app' : ''}. Activate to move.`,
             onclick: () => moveDialog(rot, s, my, rerender) },
             photo(s, 36, store.photoBase),
@@ -226,7 +226,7 @@ export function renderBoard(main, { session, params, rerender }) {
 }
 
 function needsAttention(rot, s, a) {
-  return a && (a.needsHelp || a.rank >= 4 || a.placedByApp || a.pinned);
+  return a && ((a.rank >= 3 && a.hadChoices) || a.placedByApp || a.pinned);
 }
 
 function problemBox(rot, grade, run, session, rerender) {

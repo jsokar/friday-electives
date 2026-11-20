@@ -27,8 +27,6 @@ function teacherHome(session) {
   }
   if (st === 'closed') return nextStep(`Waiting for approval — choices are closed and the groups are being made for ${rotTitle(rot)}.`, null, null, true);
   if (st === 'review') {
-    const help = kids.filter((s) => db.assignments[rot.id]?.[s.id]?.needsHelp).length;
-    if (help) return nextStep(`Choose a new elective for ${help} student${help === 1 ? '' : 's'} — due ${when(t.helpDue)}.`, '#/class', 'Help now');
     return nextStep(`Waiting for approval — the specialists are checking the groups. They will be published by ${when(t.publishBy)}.`, '#/class', 'See my class', true);
   }
   return nextStep(`Groups are ready for ${rotTitle(rot)}. Your grade goes Fridays ${periodText(c.grade)}.`, '#/class/where', 'Where does everyone go?');

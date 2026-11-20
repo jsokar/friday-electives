@@ -73,7 +73,6 @@ export const GLOSSARY = [
   ['Cycle', 'Doing all four electives. A student never repeats an elective until they have done all four.'],
   ['Track-out', 'A track that is not in school. Its students are not in the groups for those Fridays.'],
   ['Spread', 'The difference between the biggest and the smallest group in a grade. 2 or less is the goal.'],
-  ['Needs your help', 'The app could only give this child their last choice. Pick another option if it is better.'],
   ['Placed by app', 'No choices were entered by the deadline, so the app chose fairly.'],
   ['Pinned', 'A specialist moved this student by hand. Making groups again keeps it.'],
 ];
@@ -82,7 +81,7 @@ export const LEGEND = [
   ['✓ Done', 'Choices entered (or “any is fine”).'],
   ['… In progress', 'Some choices entered.'],
   ['○ Not started', 'No choices yet.'],
-  ['! Needs your help', 'Please pick another option.'],
+  ['⚠ Not chosen', 'The app could not give this child either choice (balance or rotation rules).'],
   ['📌 Pinned', 'Moved by a specialist.'],
   ['🤖 Placed by app', 'No choices were entered in time.'],
 ];

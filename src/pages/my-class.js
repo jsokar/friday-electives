@@ -1,7 +1,7 @@
-// §9.2 My Class (homeroom teacher): choices, "needs your help", results, line-up.
+// §9.2 My Class (homeroom teacher): choices, results, line-up.
 import { h, clear, photo, electiveBadge, info, dialog, field, announce, emptyState, select } from '../ui.js';
 import { db, store, classById, studentsInClass, rotationById, log, studentById } from '../data.js';
-import { timetable, stage, eligibility, registration, regStatus, saveRanking, signupOpen, inRotation, answerHelp, requestChange, past } from '../domain.js';
+import { timetable, stage, eligibility, registration, regStatus, saveRanking, signupOpen, inRotation, requestChange, past } from '../domain.js';
 import { ELECTIVES, ELECTIVE_INFO, MAX_CHOICES } from '../engine/constants.js';
 import { niceDate } from '../engine/calendar.js';
 import { when, rotTitle, teacherRotation, rotationPicker, periodText, gradeName, rotationsForClass } from './common.js';
@@ -71,25 +71,12 @@ function choiceCard(s, rot, refresh) {
 
 function resultCard(s, rot, refresh) {
   const a = db.assignments[rot.id]?.[s.id];
-  const elig = eligibility(s.id, rot);
-  const t = timetable(rot);
-  const card = h('article', { class: `scard ${a?.needsHelp ? 'help' : 'done'}`, 'aria-label': s.name });
+  const card = h('article', { class: 'scard done', 'aria-label': s.name });
   const flags = [];
   if (a?.placedByApp) flags.push(h('span', { class: 'status none' }, '🤖 Placed by app'));
   if (a?.pinned) flags.push(h('span', { class: 'status none' }, '📌 Moved by a specialist'));
-  let help = null;
-  if (a?.needsHelp && !past(t.helpDue)) {
-    help = h('div', { class: 'banner bad' },
-      h('strong', {}, '! Needs your help: '), `${s.first} could only get their last choice. Pick another option by ${when(t.helpDue)}, or leave it as is.`,
-      h('div', { class: 'choices' }, elig.available.filter((e) => e !== a.elective).map((e) =>
-        h('button', { class: 'choice', onclick: () => { answerHelp(rot, s.id, e); announce(`Saved: ${s.first} would rather do ${ELECTIVE_INFO[e].label}. Groups update at the deadline.`); refresh(); } },
-          h('span', { 'aria-hidden': 'true' }, ELECTIVE_INFO[e].icon), ELECTIVE_INFO[e].label))));
-  }
-  const reg = registration(rot, s.id);
   card.append(photo(s, 56, store.photoBase), h('div', {},
     h('div', { class: 'row' }, h('span', { class: 'name' }, s.name), a ? electiveBadge(a.elective) : h('span', { class: 'status none' }, 'Not placed yet'), ...flags),
-    reg?.helpAnswer ? h('div', { class: 'hint' }, `Help answer saved: ${ELECTIVE_INFO[reg.helpAnswer].label} (applied when groups are made again).`) : null,
-    help,
     h('div', { class: 'row', style: { marginTop: '0.35rem' } },
       h('button', { class: 'btn small', onclick: async () => {
         const input = h('textarea', { rows: 3, maxlength: 300 });
@@ -193,10 +180,8 @@ export function renderMyClass(main, { session, params, rerender }) {
     };
     for (const s of inRot) list.append(choiceCard(s, rot, refresh));
   } else if (st === 'closed') {
-    main.append(h('div', { class: 'banner' }, 'Waiting for approval. Choices are closed and the groups are being made — check back after ', when(t.groupsMade), '.'));
+    main.append(h('div', { class: 'banner' }, 'Waiting for approval. Choices are closed and the app is making the groups now — check back in a few minutes.'));
   } else {
-    const help = inRot.filter((s) => db.assignments[rot.id]?.[s.id]?.needsHelp).length;
-    if (help && !past(t.helpDue)) main.append(h('div', { class: 'banner bad' }, `${help} student${help === 1 ? '' : 's'} need${help === 1 ? 's' : ''} your help — due ${when(t.helpDue)}.`));
     if (!rot.grades[c.grade].publishedAt) main.append(h('div', { class: 'banner' }, `Waiting for approval — the specialists are checking the groups. Published by ${when(t.publishBy)}. Until then, the groups below may still change.`));
     const refresh = () => rerender();
     for (const s of inRot) list.append(resultCard(s, rot, refresh));
