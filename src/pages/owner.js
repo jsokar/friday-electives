@@ -5,6 +5,8 @@ import { makeCodeRecord, ROLE_LABEL, CODE_LENGTH, clearDeviceLock } from '../aut
 import { stage, currentRotation, timetable } from '../domain.js';
 import { GRADES } from '../engine/constants.js';
 import { gradeName } from './common.js';
+import { mergeRoster } from '../roster-merge.js';
+import { saveNow } from '../data.js';
 
 function passcodes(rerender) {
   const row = (role) => {
@@ -194,11 +196,59 @@ function backup(rerender) {
       } }, 'Delete all test data')));
 }
 
+function rosterUpdate(rerender) {
+  const status = h('p', { class: 'muted', role: 'status' }, 'Brings in new students, class changes and new photos from the Classroom roster on this Mac. Nobody is deleted; your own settings and every child’s elective history are kept.');
+  const btn = h('button', { class: 'btn primary', onclick: async () => {
+    let incoming;
+    try {
+      const res = await fetch('../seed/roster.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error();
+      incoming = await res.json();
+    } catch {
+      status.textContent = 'This only works when the app is opened on your Mac at http://localhost:8742/public/ (the student files stay on your Mac). Ask Claude to refresh the import first if the Classroom roster changed.';
+      return;
+    }
+    const r = mergeRoster({ students: db.students, classes: db.classes }, incoming, todayISO());
+    const s = r.summary;
+    if (!r.changes) {
+      status.textContent = '✓ The student list is already up to date.';
+      return;
+    }
+    const line = (label, list) => (list.length ? h('li', {}, h('strong', {}, `${label} (${list.length}): `), list.slice(0, 15).join('; '), list.length > 15 ? ` … and ${list.length - 15} more` : '') : null);
+    const ok = await dialog({
+      title: 'Update the student list?',
+      body: h('ul', {}, line('New students', s.added), line('Changed class', s.moved), line('Name changed', s.renamed), line('No longer in the Classroom roster (marked inactive, not deleted)', s.left), line('Back again', s.returned), line('New photos', s.newPhotos), line('New classes', s.newClasses)),
+      buttons: [{ label: 'Cancel', value: false }, { label: 'Update', primary: true, value: true }],
+    });
+    if (!ok) return;
+    btn.disabled = true;
+    db.students = r.students;
+    db.classes = r.classes;
+    log('student list updated from Classroom', { added: s.added.length, moved: s.moved.length, left: s.left.length });
+    status.textContent = 'Saving the student list…';
+    try {
+      await saveNow();
+      if (store.uploadPhotos) {
+        const res = await store.uploadPhotos(db.students.filter((x) => x.active), '../seed/', (n, total) => (status.textContent = `Uploading photos… ${n} of ${total}`));
+        status.textContent = `✓ Done: ${s.added.length} new students, ${s.moved.length} class change(s), photos updated${res.failed.length ? ` (${res.failed.length} photos failed — press again to retry)` : ''}. Reloading…`;
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        status.textContent = `✓ Done: ${s.added.length} new students, ${s.moved.length} class change(s).`;
+        rerender();
+      }
+    } catch (e) {
+      status.textContent = `Could not save: ${e.message}. Nothing was lost — reload and try again.`;
+      btn.disabled = false;
+    }
+  } }, 'Check for roster changes');
+  return card('Update students from Classroom', status, btn);
+}
+
 export function renderOwner(main, { rerender }) {
   main.append(h('h1', {}, 'Admin'),
     h('p', { class: 'muted' }, 'Only your 6-digit code opens this page. Here you manage the passcodes, the student list, class teachers, Friday times and backups.'),
     h('div', { class: 'row', style: { marginBottom: '1rem' } },
       h('a', { class: 'btn small', href: '#/reports' }, '🖨 All printouts'),
       h('a', { class: 'btn small', href: '#/attendance' }, 'Attendance (optional)')),
-    dataChecks(), testClock(rerender), passcodes(rerender), students(rerender), classes(rerender), settings(rerender), backup(rerender), historyCard());
+    dataChecks(), testClock(rerender), passcodes(rerender), rosterUpdate(rerender), students(rerender), classes(rerender), settings(rerender), backup(rerender), historyCard());
 }

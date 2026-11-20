@@ -126,6 +126,10 @@ export async function makeSupabaseStore(cfg, rotationTimetable) {
         const { error } = await sb.rpc('save_doc', { p_key: key, p_data: value, p_expected_version: 0 });
         if (error && error.code !== '40001') throw new Error(`${key}: ${error.message}`);
       }
+      return store.uploadPhotos(students, photoBaseUrl, onProgress);
+    },
+    /** Upload (or replace) the small photo thumbnails, 6 at a time. Owner only. */
+    async uploadPhotos(students, photoBaseUrl, onProgress = () => {}) {
       const withPhotos = students.filter((s) => s.photo);
       let done = 0;
       const failed = [];

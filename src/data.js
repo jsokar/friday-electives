@@ -111,6 +111,15 @@ export function changed({ save = true } = {}) {
   }, 150);
 }
 
+/** Save right away and wait for the result (used before steps that depend on the save). */
+export async function saveNow() {
+  clearTimeout(saveTimer);
+  setSaveState('saving');
+  saving = saving.then(() => store.save(db));
+  await saving;
+  setSaveState('saved');
+}
+
 function setSaveState(s) {
   saveState = s;
   const pill = document.getElementById('save-pill');
